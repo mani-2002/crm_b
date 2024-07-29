@@ -5,10 +5,12 @@ const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const session = require("express-session");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = 3001;
 const saltRound = 10;
+const secretKey = "yourSecretKey";
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -54,7 +56,7 @@ app.post("/signup", (req, res) => {
       res.status(400).json({ message: "missing required fields" });
       return;
     }
-    const insertUserQuery = `INSERT INTO users(mobile_number,username,password) VALUES (?,?,?)`;
+    const insertUserQuery = `INSERT INTO users(mobile_number,username,password,role) VALUES (?,?,?,'user')`;
     connection.execute(
       insertUserQuery,
       [mobileNumber, userName, hash],
@@ -82,8 +84,9 @@ app.post("/login", (req, res) => {
   if (!userName || !password) {
     return res.status(400).json({ message: "missing required fields" });
   }
+
   const userLoginQuery =
-    "SELECT username, password FROM users WHERE username = ?";
+    "SELECT username, password, role FROM users WHERE username = ?";
   connection.execute(userLoginQuery, [userName], (error, result) => {
     if (error) {
       return res.status(500).json({ message: "Internal server error" });
@@ -91,6 +94,16 @@ app.post("/login", (req, res) => {
     if (result.length === 0) {
       return res.status(404).json({ message: "User doesnot exists " });
     }
+    const role = result[0].role;
+    //if admin
+    if (role === "admin") {
+      const token = jwt.sign({ userName, role: "admin" }, secretKey, {
+        expiresIn: "30m",
+      });
+      return res.json({ token });
+    }
+
+    //if user
     const hashedPassword = result[0].password;
     bcrypt.compare(password, hashedPassword, (error, isMatch) => {
       if (error) {
@@ -98,8 +111,10 @@ app.post("/login", (req, res) => {
       }
       if (isMatch) {
         req.session.user = result;
-        console.log("matched");
-        res.status(201).json({ message: "Login successful" });
+        const token = jwt.sign({ userName, role: "user" }, secretKey, {
+          expiresIn: "30m",
+        });
+        return res.json({ token, message: "Login Successful" });
       } else {
         return res.status(401).json({ message: "invalid credentials" });
       }
