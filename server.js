@@ -6,11 +6,17 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const jwt = require("jsonwebtoken");
+const twilio = require("twilio");
+require("dotenv").config();
 
 const app = express();
 const PORT = 3001;
 const saltRound = 10;
 const secretKey = "yourSecretKey";
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+const client = twilio(accountSid, authToken);
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -119,6 +125,56 @@ app.post("/login", (req, res) => {
         return res.status(401).json({ message: "invalid credentials" });
       }
     });
+  });
+});
+
+app.post("/user_message", (req, res) => {
+  const { message, token } = req.body;
+  const userCredentials = jwt.decode(token);
+  const loggedInUser = userCredentials.userName;
+  const dateAndTime = new Date();
+
+  const messageInsertQuery = `INSERT INTO messages (message, from_user, msg_date_and_time) VALUES (?, ?, ?)`;
+
+  connection.execute(
+    messageInsertQuery,
+    [message, loggedInUser, dateAndTime],
+    (err, result) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ message: "Error adding message to the database" });
+      }
+
+      client.messages
+        .create({
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: process.env.CELL_PHONE_NUMBER,
+          body: message,
+        })
+        .then((message) => {
+          res
+            .status(200)
+            .json({ message: "Message sent to Admin successfully" });
+        })
+        .catch((error) => {
+          console.error("Error sending message:", error);
+          res.status(500).json({ message: "Error sending message" });
+        });
+    }
+  );
+});
+
+app.get("/user_messages", (req, res) => {
+  const token = req.headers.authorization;
+  const userCredentials = jwt.decode(token);
+  const loggedInUser = userCredentials.userName;
+  const selectQuery = `select * from messages where from_user = ? order by msg_date_and_time`;
+  connection.execute(selectQuery, [loggedInUser], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: "Error fetching messages" });
+    }
+    return res.json(result);
   });
 });
 
