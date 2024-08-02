@@ -8,13 +8,15 @@ const session = require("express-session");
 const jwt = require("jsonwebtoken");
 const http = require("http");
 const socketIo = require("socket.io");
+const RedisStore = require("connect-redis")(session);
+const redisClient = require("redis").createClient();
 require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "https://crm10.vercel.app",
+    origin: ["https://crm10.vercel.app", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -41,7 +43,7 @@ connection.connect((err) => {
 
 app.use(
   cors({
-    origin: ["https://crm10.vercel.app"],
+    origin: ["https://crm10.vercel.app", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
   })
@@ -51,6 +53,7 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   session({
+    store: new RedisStore({ client: redisClient }),
     key: "userId",
     secret: "subscribe",
     resave: false,
