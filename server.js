@@ -22,7 +22,6 @@ const io = socketIo(server, {
   },
 });
 
-const PORT = 3001;
 const saltRound = 10;
 const secretKey = "yourSecretKey";
 
@@ -31,7 +30,6 @@ const connection = mysql.createConnection({
   user: "root",
   password: "root",
   database: "crm",
-  port: 3306,
 });
 
 // const connection = mysql.createConnection({
