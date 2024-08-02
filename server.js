@@ -25,10 +25,10 @@ const saltRound = 10;
 const secretKey = "yourSecretKey";
 
 const connection = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "crm",
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: MYSQLPASSWORD,
+  database: MYSQL_DATABASE,
 });
 
 connection.connect((err) => {
