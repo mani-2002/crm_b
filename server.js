@@ -4,12 +4,12 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-const session = require("express-session");
+// const session = require("express-session");
 const jwt = require("jsonwebtoken");
 const http = require("http");
 const socketIo = require("socket.io");
-const RedisStore = require("connect-redis")(session);
-const redisClient = require("redis").createClient();
+// const RedisStore = require("connect-redis")(session);
+// const redisClient = require("redis").createClient();
 require("dotenv").config();
 
 const app = express();
@@ -51,18 +51,18 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(
-  session({
-    store: new RedisStore({ client: redisClient }),
-    key: "userId",
-    secret: "subscribe",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      expires: 60 * 60 * 24,
-    },
-  })
-);
+// app.use(
+//   session({
+//     store: new RedisStore({ client: redisClient }),
+//     key: "userId",
+//     secret: "subscribe",
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: {
+//       expires: 60 * 60 * 24,
+//     },
+//   })
+// );
 
 app.post("/signup", (req, res) => {
   const { mobileNumber, userName, password } = req.body;
@@ -105,13 +105,13 @@ app.post("/signup", (req, res) => {
   });
 });
 
-app.get("/login", (req, res) => {
-  if (req.session.user) {
-    res.send({ loggedIn: true, user: req.session.user });
-  } else {
-    res.send({ loggedIn: false });
-  }
-});
+// app.get("/login", (req, res) => {
+//   if (req.session.user) {
+//     res.send({ loggedIn: true, user: req.session.user });
+//   } else {
+//     res.send({ loggedIn: false });
+//   }
+// });
 
 app.post("/login", (req, res) => {
   const { userName, password } = req.body;
@@ -144,7 +144,7 @@ app.post("/login", (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
       }
       if (isMatch) {
-        req.session.user = result;
+        // req.session.user = result;
         const token = jwt.sign({ userName, role: "user" }, secretKey, {
           expiresIn: "30m",
         });
