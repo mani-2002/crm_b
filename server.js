@@ -6,7 +6,6 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const jwt = require("jsonwebtoken");
-const twilio = require("twilio");
 const http = require("http");
 const socketIo = require("socket.io");
 require("dotenv").config();
@@ -15,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000"],
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -24,16 +23,12 @@ const io = socketIo(server, {
 const PORT = 3001;
 const saltRound = 10;
 const secretKey = "yourSecretKey";
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-const client = twilio(accountSid, authToken);
 
 const connection = mysql.createConnection({
-  host: process.env.MYSQLHOST,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQL_DATABASE,
+  host: "localhost",
+  user: "root",
+  password: "root",
+  database: "crm",
 });
 
 connection.connect((err) => {
@@ -73,16 +68,35 @@ app.post("/signup", (req, res) => {
       res.status(400).json({ message: "missing required fields" });
       return;
     }
-    const insertUserQuery = `INSERT INTO users(mobile_number,username,password,role) VALUES (?,?,?,'user')`;
+    const checkUserQuery = `SELECT * FROM users WHERE mobile_number = ? OR username = ?`;
     connection.execute(
-      insertUserQuery,
-      [mobileNumber, userName, hash],
-      (err, result) => {
+      checkUserQuery,
+      [mobileNumber, userName],
+      (err, results) => {
         if (err) {
-          res.status(500).json({ message: "error creating the user" });
-          return;
+          return res
+            .status(500)
+            .json({ message: "error checking for existing user" });
         }
-        res.status(201).json({ message: "user created successfully" });
+
+        if (results.length > 0) {
+          return res.status(409).json({ message: "user already exists" });
+        }
+
+        // Insert the new user
+        const insertUserQuery = `INSERT INTO users(mobile_number, username, password, role) VALUES (?, ?, ?, 'user')`;
+        connection.execute(
+          insertUserQuery,
+          [mobileNumber, userName, hash],
+          (err, result) => {
+            if (err) {
+              return res
+                .status(500)
+                .json({ message: "error creating the user" });
+            }
+            res.status(201).json({ message: "user created successfully" });
+          }
+        );
       }
     );
   });
@@ -156,23 +170,8 @@ app.post("/user_message", (req, res) => {
           .status(500)
           .json({ message: "Error adding message to the database" });
       }
-
-      client.messages
-        .create({
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: process.env.CELL_PHONE_NUMBER,
-          body: message,
-        })
-        .then((message) => {
-          io.emit("receiveMessage", { from: loggedInUser, message });
-          res
-            .status(200)
-            .json({ message: "Message sent to Admin successfully" });
-        })
-        .catch((error) => {
-          console.error("Error sending message:", error);
-          res.status(500).json({ message: "Error sending message" });
-        });
+      io.emit("receiveMessage", { from: loggedInUser, message });
+      res.status(201).json({ message: "Message sent to Admin Successfully" });
     }
   );
 });
@@ -190,18 +189,14 @@ app.get("/user_messages", (req, res) => {
   });
 });
 
+// Set up Socket.io connection
 io.on("connection", (socket) => {
   console.log("A user connected");
-
-  // Handle disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected");
   });
 });
 
-// app.listen(PORT, () => {
-//   console.log(`server running on ${PORT}`);
-// });
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server is running on port 5000");
 });
