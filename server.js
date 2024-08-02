@@ -15,7 +15,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://crm10.vercel.app/"],
+    origin: ["http://localhost:3000", "https://crm10.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -46,7 +46,7 @@ connection.connect((err) => {
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://crm10.vercel.app/"],
+    origin: ["http://localhost:3000", "https://crm10.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   })
