@@ -27,8 +27,8 @@ const secretKey = "yourSecretKey";
 const connection = mysql.createConnection({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
-  password: MYSQLPASSWORD,
-  database: MYSQL_DATABASE,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQL_DATABASE,
 });
 
 connection.connect((err) => {
