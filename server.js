@@ -7,9 +7,20 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const jwt = require("jsonwebtoken");
 const twilio = require("twilio");
+const http = require("http");
+const socketIo = require("socket.io");
 require("dotenv").config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
 const PORT = 3001;
 const saltRound = 10;
 const secretKey = "yourSecretKey";
@@ -19,10 +30,10 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 
 const connection = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "crm",
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQL_DATABASE,
 });
 
 connection.connect((err) => {
@@ -153,6 +164,7 @@ app.post("/user_message", (req, res) => {
           body: message,
         })
         .then((message) => {
+          io.emit("receiveMessage", { from: loggedInUser, message });
           res
             .status(200)
             .json({ message: "Message sent to Admin successfully" });
@@ -178,6 +190,18 @@ app.get("/user_messages", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`server running on ${PORT}`);
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
+
+// app.listen(PORT, () => {
+//   console.log(`server running on ${PORT}`);
+// });
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
