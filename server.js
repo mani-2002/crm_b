@@ -2,9 +2,7 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-const session = require("express-session");
 const jwt = require("jsonwebtoken");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -51,19 +49,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(
-  session({
-    key: "userId",
-    secret: "subscribe",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      expires: 60 * 60 * 24,
-    },
-  })
-);
 
 app.post("/signup", upload.single("file"), (req, res) => {
   const { mobileNumber, userName, password } = req.body;
@@ -114,11 +100,7 @@ app.post("/signup", upload.single("file"), (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  if (req.session.user) {
-    res.send({ loggedIn: true, user: req.session.user });
-  } else {
-    res.send({ loggedIn: false });
-  }
+  res.send({ loggedIn: false });
 });
 
 app.post("/login", (req, res) => {
@@ -152,7 +134,6 @@ app.post("/login", (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
       }
       if (isMatch) {
-        // req.session.user = result;
         const token = jwt.sign({ userName, role: "user" }, secretKey, {
           expiresIn: "30m",
         });
