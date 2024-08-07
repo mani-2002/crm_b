@@ -18,7 +18,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://crm-f-seven.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -45,7 +45,7 @@ connection.connect((err) => {
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://crm-f-seven.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   })
